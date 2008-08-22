@@ -31,7 +31,9 @@ for more bacon from the delivery truck.
 
 == SYNOPSIS:
 
-The ExpirationDate module adds the {expiring_attr}[http://codeforpeople.rubyforge.org/expiration-date/classes/ExpirationDate/ClassMethods.html] method to a class. This method is used to define an attribute that will expire after some period of seconds have elapsed.
+The ExpirationDate module adds the "expiring_attr" method to a class. This
+method is used to define an attribute that will expire after some period of
+seconds have elapsed.
 
 A simple example demonstrating how the block gets called after the expiration
 time is passed.
@@ -54,7 +56,9 @@ time is passed.
   sleep 61
   a.foo                  #=> 'foo'
 
-A slightly more useful example. Here we are going to extract information from a database every five minutes. This assumes you have the 'activesupport' and 'activerecord' gems installed.
+A slightly more useful example. Here we are going to extract information from a
+database every five minutes. This assumes you have the 'activesupport' and
+'activerecord' gems installed.
 
   class MyModel < ::ActiveRecord::Base
     include ExpirationDate
