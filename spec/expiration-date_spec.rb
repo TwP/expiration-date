@@ -39,6 +39,19 @@ describe ExpirationDate do
     a.bar.should == 'bar'
   end
 
+  it 'can assign an attribute' do
+    a = TestA.new
+    a.foo.should == 'foo'
+
+    foobar = 'foobar'
+    a.foo = foobar
+    a.foo.should be_equal(foobar)
+
+    sleep 0.75
+    a.foo.should_not be_equal(foobar)
+    a.foo.should == 'foo'
+  end
+
   it 'can alter an expiration label' do
     a = TestA.new
     bar = a.bar
@@ -60,7 +73,7 @@ describe ExpirationDate do
     bar.should_not be_equal(a.bar)
   end
 
-  it 'ignores requests on unknown expriation lables' do
+  it 'ignores requests on unknown expriation labels' do
     a = TestA.new
 
     h = a.expiration_labels
