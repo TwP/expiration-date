@@ -14,7 +14,7 @@ PROJ.url = 'http://codeforpeople.rubyforge.org/expiration-date'
 PROJ.rubyforge.name = 'codeforpeople'
 PROJ.rdoc.remote_dir = 'expiration-date'
 PROJ.version = ExpirationDate::VERSION
-PROJ.release_name = 'Stale Green Bacon'
+PROJ.release_name = 'Buggy Bacon'
 
 PROJ.spec.opts << '--color'
 

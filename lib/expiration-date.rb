@@ -4,7 +4,7 @@ require 'thread'
 module ExpirationDate
 
   # :stopdoc:
-  VERSION = '1.0.0'
+  VERSION = '1.0.1'
   ExpirationLabel = Struct.new(:mutex, :age, :expires_on)
   # :startdoc:
 
