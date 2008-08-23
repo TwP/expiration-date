@@ -57,7 +57,8 @@ module ExpirationDate
           if label.expires_on.nil? || now >= label.expires_on
             label.mutex.synchronize {
               break unless label.expires_on.nil? || now >= label.expires_on
-              @#{name} = ::#{self.name}._managers_specials[#{name.inspect}].call
+              block = ::#{self.name}._managers_specials[#{name.inspect}]
+              @#{name} = instance_eval(&block)
               label.age ||= #{age}
               label.expires_on = now + label.age
             }

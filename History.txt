@@ -1,3 +1,9 @@
+== 1.0.1 / 2008-08-23
+
+- 1 bug fix
+  * ensuring the block executes in the context of the
+    instance and not the class
+
 == 1.0.0 / 2008-08-22
 
 * 1 major enhancement

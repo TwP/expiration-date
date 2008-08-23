@@ -6,6 +6,7 @@ class TestA
 
   expiring_attr(:foo,  0.5) { 'foo' }
   expiring_attr('bar', 10 ) { 'bar' }
+  expiring_attr(:me,   60 ) { self  }
 end
 
 
@@ -84,6 +85,11 @@ describe ExpirationDate do
 
     a.alter_expiration_label(:foobar, 42)
     h.keys.length == 2
+  end
+
+  it 'executes the block in the context of the instance' do
+    a = TestA.new
+    a.me.should be_equal(a)
   end
 end
 
