@@ -1,6 +1,7 @@
+.gitignore
 History.txt
 Manifest.txt
-README.txt
+README.rdoc
 Rakefile
 lib/expiration-date.rb
 spec/expiration-date_spec.rb

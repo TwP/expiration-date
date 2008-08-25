@@ -1,6 +1,11 @@
+== 1.1.0 / 2008-08-25
+
+* 1 minor enhancement
+  * added expiring class attributes
+
 == 1.0.1 / 2008-08-23
 
-- 1 bug fix
+* 1 bug fix
   * ensuring the block executes in the context of the
     instance and not the class
 

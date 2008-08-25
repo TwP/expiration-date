@@ -4,7 +4,7 @@ require 'thread'
 module ExpirationDate
 
   # :stopdoc:
-  VERSION = '1.0.1'
+  VERSION = '1.1.0'
   ExpirationLabel = Struct.new(:mutex, :age, :expires_on)
   # :startdoc:
 
@@ -28,7 +28,9 @@ module ExpirationDate
     # Declares a new instance attribute that will expire after _age_ seconds
     # and be replaced by the results of running the _block_. The block is
     # lazily evaluated when the attribute is accessed after the expiration
-    # time.
+    # time. The block is evaluated in the context of the instance (as
+    # opposed to being evaluated in the context of the class where the block
+    # is declared).
     #
     # Obviously this scheme will only work if the attribute is only accessed
     # using the setter and getter methods defined by this function.
@@ -39,9 +41,11 @@ module ExpirationDate
     #   end
     #
     #   a = A.new
-    #   a.foo.object_id    #=> 123456
+    #   a.foo              #=> 'foo'
+    #   a.foo = 'bar'
+    #   a.foo              #=> 'bar'
     #   sleep 61
-    #   a.foo.object_id    #=> 654321
+    #   a.foo              #=> 'foo'
     #
     def expiring_attr( name, age, &block )
       raise ArgumentError, "a block must be given" if block.nil?
@@ -53,7 +57,7 @@ module ExpirationDate
       self.class_eval <<-CODE, __FILE__, __LINE__
         def #{name}
           now = Time.now
-          label = expiration_labels[#{name.inspect}]
+          label = _expiration_labels[#{name.inspect}]
           if label.expires_on.nil? || now >= label.expires_on
             label.mutex.synchronize {
               break unless label.expires_on.nil? || now >= label.expires_on
@@ -68,13 +72,90 @@ module ExpirationDate
 
         def #{name}=( val )
           now = Time.now
-          label = expiration_labels[#{name.inspect}]
+          label = _expiration_labels[#{name.inspect}]
           label.mutex.synchronize {
             @#{name} = val
             label.age ||= #{age}
             label.expires_on = now + label.age
           }
           @#{name}
+        end
+
+        def expire_#{name}_now
+          label = _expiration_labels[#{name.inspect}]
+          label.mutex.synchronize {label.expires_on = Time.now - 1}
+          @#{name}
+        end
+
+        def alter_#{name}_age( age )
+          label = _expiration_labels[#{name.inspect}]
+          label.mutex.synchronize {label.age = Float(age)}
+        end
+      CODE
+    end
+
+    # Declares a new class attribute that will expire after _age_ seconds
+    # and be replaced by the results of running the _block_. The block is
+    # lazily evaluated when the attribute is accessed after the expiration
+    # time. The block is evaluated in the context of the class.
+    #
+    # Obviously this scheme will only work if the attribute is only accessed
+    # using the setter and getter methods defined by this function.
+    #
+    #   class A
+    #     include ExpirationDate
+    #     expiring_class_attr( :foo, 60 ) { 'foo' }
+    #   end
+    #
+    #   A.foo              #=> 'foo'
+    #   A.foo = 'bar'
+    #   A.foo              #=> 'bar'
+    #   sleep 61
+    #   A.foo              #=> 'foo'
+    #
+    def expiring_class_attr( name, age, &block )
+      raise ArgumentError, "a block must be given" if block.nil?
+
+      name = name.to_sym
+      age = Float(age)
+      _class_managers_specials[name] = block
+
+      self.class_eval <<-CODE, __FILE__, __LINE__
+        def self.#{name}
+          now = Time.now
+          label = _class_expiration_labels[#{name.inspect}]
+          if label.expires_on.nil? || now >= label.expires_on
+            label.mutex.synchronize {
+              break unless label.expires_on.nil? || now >= label.expires_on
+              block = ::#{self.name}._class_managers_specials[#{name.inspect}]
+              @#{name} = instance_eval(&block)
+              label.age ||= #{age}
+              label.expires_on = now + label.age
+            }
+          end
+          @#{name}
+        end
+
+        def self.#{name}=( val )
+          now = Time.now
+          label = _class_expiration_labels[#{name.inspect}]
+          label.mutex.synchronize {
+            @#{name} = val
+            label.age ||= #{age}
+            label.expires_on = now + label.age
+          }
+          @#{name}
+        end
+
+        def self.expire_#{name}_now
+          label = _class_expiration_labels[#{name.inspect}]
+          label.mutex.synchronize {label.expires_on = Time.now - 1}
+          @#{name}
+        end
+
+        def self.alter_#{name}_age( age )
+          label = _class_expiration_labels[#{name.inspect}]
+          label.mutex.synchronize {label.age = Float(age)}
         end
       CODE
     end
@@ -86,55 +167,23 @@ module ExpirationDate
     def _managers_specials
       @_managers_specials ||= Hash.new
     end
+
+    def _class_managers_specials
+      @_class_managers_specials ||= Hash.new
+    end
+
+    def _class_expiration_labels
+      @_class_expiration_labels ||= Hash.new do |h,k|
+        h[k] = ExpirationLabel.new(Mutex.new)
+      end
+    end
     # :startdoc:
-  end
-
-  # Immediately expire an attribute so that it will be refreshed the next
-  # time it is requested.
-  #
-  #    expire_now( :foo )
-  #
-  def expire_now( name )
-    name = name.to_sym
-    if expiration_labels.key?(name)
-      now = Time.now
-      label = expiration_labels[name]
-      label.mutex.synchronize {
-        label.expires_on = now - 1
-      }
-    end
-  end
-
-  # Alter the _age_ of the named attribute. This new age will be used the
-  # next time the attribute expries to determine the new expiration date --
-  # i.e. the new age does not immediately take effect. You will need to
-  # manually expire the attribute if you want the new age to take effect
-  # immediately.
-  #
-  # Modify the 'foo' attribute so that it expires every 60 seconds.
-  #
-  #    alter_expiration_label( :foo, 60 )
-  #
-  # Modify the 'bar' attribute so that it expires every two minutes. Make
-  # this new age take effect immediately.
-  #
-  #    alter_expiration_label( :bar, 120 )
-  #    expire_now( :bar )
-  #
-  def alter_expiration_label( name, age )
-    name = name.to_sym
-    if expiration_labels.key?(name)
-      label = expiration_labels[name]
-      label.mutex.synchronize {
-        label.age = Float(age)
-      }
-    end
   end
 
   # Accessor that returns the hash of ExpirationLabel objects.
   #
-  def expiration_labels
-    @expiration_labels ||= Hash.new do |h,k|
+  def _expiration_labels
+    @_expiration_labels ||= Hash.new do |h,k|
       h[k] = ExpirationLabel.new(Mutex.new)
     end
   end

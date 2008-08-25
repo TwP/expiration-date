@@ -5,6 +5,81 @@
 
 == DESCRIPTION:
 
+Really simple caching by attaching an expiration date to attributes.
+
+The ExpirationDate module adss two methods to a class -- expiring_attr and
+expiring_class_attr. These two methods are used to declare attributes in the
+instance and in the class, respectively, that will expire after some period of
+seconds have elapsed. The attribute is re-initialized from the given block
+after it has expired. This is a very simple form of caching.
+
+
+== SYNOPSIS:
+
+A simple example demonstrating how the block gets called after the expiration
+time is passed.
+
+  class A
+    include ExpirationDate
+    expiring_attr( :foo, 60 ) { 'foo' }
+  end
+
+  a = A.new
+  a.foo                  #=> 'foo'
+  a.foo = 'bar'
+  a.foo                  #=> 'bar'
+
+  sleep 61
+  a.foo                  #=> 'foo'
+
+A slightly more useful example. Here we are going to extract information from a
+database every five minutes. This assumes you have the 'activesupport' and
+'activerecord' gems installed.
+
+  class MyModel < ::ActiveRecord::Base
+    include ExpirationDate
+    expiring_class_attr( :costly_data, 5.minutes ) {
+      models = MyModel.find( :all, :conditions => ['costly query conditions'] )
+      result = models.map {|m| # costly operations here}
+      result
+    }
+  end
+
+  MyModel.costly_data    #=> result
+
+Attributes can be expired manually, and the time it takes them to expire can be
+modified as well.
+
+  class AgeDemo
+    include ExpirationDate
+    expiring_attr( :bar, 120 ) { Time.now }
+  end
+
+  demo = AgeDemo.new
+  demo.bar               #=> now
+
+  sleep 60
+  demo.bar               #=> 60 seconds ago
+
+  demo.expire_bar_now
+  demo.bar               #=> now
+
+  demo.alter_bar_age( 10 )
+  demo.expire_bar_now
+  demo.bar               #=> now
+  sleep 11
+  demo.bar               #=> now
+
+== REQUIREMENTS:
+
+This is a pure ruby library. There are no requirements for using this code.
+
+== INSTALL:
+
+  sudo gem install expiration-date
+
+== FUN STORY:
+
 Wandering the grocery aisle the other day I saw a package of bacon with a neon
 green sticker screaming for all to hear "THIS BACON ONLY COSTS ONE DOLLAR!!!".
 Screaming bacon always intrigues me, so I grabbed the nearest store manager. He
@@ -28,77 +103,6 @@ EXPIRATION DATE (now with more neon green).
 
 Now ruby can expire it's bacon, too, just like the grocery store, and make room
 for more bacon from the delivery truck.
-
-== SYNOPSIS:
-
-The ExpirationDate module adds the "expiring_attr" method to a class. This
-method is used to define an attribute that will expire after some period of
-seconds have elapsed.
-
-A simple example demonstrating how the block gets called after the expiration
-time is passed.
-
-  class A
-    include ExpirationDate
-    expiring_attr( :foo, 60 ) { 'foo' }
-  end
-
-  a = A.new
-  a.foo                  #=> 'foo'
-  a.foo.object_id        #=> 123456
-  a.foo.object_id        #=> 123456
-
-  sleep 61
-  a.foo.object_id        #=> 654321
-
-  a.foo = 'bar'
-  a.foo                  #=> 'bar'
-  sleep 61
-  a.foo                  #=> 'foo'
-
-A slightly more useful example. Here we are going to extract information from a
-database every five minutes. This assumes you have the 'activesupport' and
-'activerecord' gems installed.
-
-  class MyModel < ::ActiveRecord::Base
-    include ExpirationDate
-    expiring_attr( :costly_data, 5.minutes ) {
-      models = MyModel.find( :all, :conditions => ['costly query conditions'] )
-      result = models.map {|m| # costly operations here}
-      result
-    }
-  end
-
-Attributes can be expired manually, and the time it takes them to expire can be
-modified as well.
-
-  class AgeDemo
-    include ExpirationDate
-    expiring_attr( :bar, 120 ) { Time.now }
-  end
-
-  demo = AgeDemo.new
-  demo.bar               #=> now
-
-  sleep 60
-  demo.bar               #=> 60 seconds ago
-
-  demo.expire_now(:bar)
-  demo.bar               #=> now
-
-  demo.alter_expiration_label(:bar, 10)
-  demo.expire_now(:bar)
-  demo.bar               #=> now
-  sleep 11
-  demo.bar               #=> now
-
-== REQUIREMENTS:
-
-This is a pure ruby library. There are no requirements for using this code.
-
-== INSTALL:
-
-  sudo gem install expiration-date
 
 == LICENSE:
 

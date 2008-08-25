@@ -14,7 +14,9 @@ PROJ.url = 'http://codeforpeople.rubyforge.org/expiration-date'
 PROJ.rubyforge.name = 'codeforpeople'
 PROJ.rdoc.remote_dir = 'expiration-date'
 PROJ.version = ExpirationDate::VERSION
-PROJ.release_name = 'Buggy Bacon'
+PROJ.release_name = 'Screaming Bacon'
+PROJ.readme_file = 'README.rdoc'
+PROJ.rdoc.include << 'README.rdoc'
 
 PROJ.spec.opts << '--color'
 
