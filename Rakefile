@@ -1,5 +1,10 @@
 
-load 'tasks/setup.rb'
+begin
+  require 'bones'
+  Bones.setup
+rescue LoadError
+  load 'tasks/setup.rb'
+end
 
 ensure_in_path 'lib'
 require 'expiration-date'
@@ -22,6 +27,7 @@ PROJ.spec.opts << '--color'
 
 PROJ.ann.email[:server] = 'smtp.gmail.com'
 PROJ.ann.email[:port] = 587
+PROJ.ann.email[:from] = 'Tim Pease'
 PROJ.ann.paragraphs << 'synopsis'
 
 # EOF
